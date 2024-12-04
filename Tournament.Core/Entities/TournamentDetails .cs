@@ -10,7 +10,7 @@ namespace Tournament.Core.Entities
     {
         public int Id { get; set; }
         public string Title { get; set; }
-        DateTime StartDate { get; set; }
+        public DateTime StartDate { get; set; }
         public ICollection<Game> Games { get; set; }   
     }
 }
