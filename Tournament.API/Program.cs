@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tournament.API.Extensions;
+using Tournament.Core.Repositories;
 using Tournament.Data.Data;
+using Tournament.Data.Repositories;
 
 namespace Tournament.API
 {
@@ -18,6 +20,20 @@ namespace Tournament.API
             builder.Services.AddControllers(opt => opt.ReturnHttpNotAcceptable = true)
                 .AddNewtonsoftJson()
                 .AddXmlDataContractSerializerFormatters();
+
+            builder.Services.AddAutoMapper(typeof(TournamentMappings));
+            builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
+            builder.Services.AddScoped<IGameRepository, GameRepository>();
+            builder.Services.AddScoped<IUoW, UoW>();
+
+            builder.Services.AddCors(builder =>
+            {
+                builder.AddPolicy("AllowAll", p =>
+                p.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+
+            });
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();

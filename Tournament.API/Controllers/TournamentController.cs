@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Tournament.Data.Data;
+using Tournament.Core.Dto;
 using Tournament.Core.Entities;
+using Tournament.Core.Repositories;
 
 namespace Tournament.API.Controllers
 {
@@ -14,36 +11,38 @@ namespace Tournament.API.Controllers
     [ApiController]
     public class TournamentController : ControllerBase
     {
-        private readonly Context _context;
+        private readonly IUoW _uow;
+        private readonly IMapper _mapper;
 
-        public TournamentController(Context context)
+        public TournamentController(IUoW uow, IMapper mapper)
         {
-            _context = context;
+            _uow = uow;
+            _mapper = mapper;
         }
 
         // GET: api/Tournament
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails()
+        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournamentDetails()
         {
-            return await _context.TournamentDetails.ToListAsync();
+            var tournaments = await _uow.TournamentRepository.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<TournamentDto>>(tournaments));
         }
 
         // GET: api/Tournament/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TournamentDetails>> GetTournamentDetails(int id)
+        public async Task<ActionResult<TournamentDto>> GetTournamentDetails(int id)
         {
-            var tournamentDetails = await _context.TournamentDetails.FindAsync(id);
+            var tournament = await _uow.TournamentRepository.GetAsync(id);
 
-            if (tournamentDetails == null)
+            if (tournament == null)
             {
                 return NotFound();
             }
 
-            return tournamentDetails;
+            return Ok(_mapper.Map<TournamentDto>(tournament));
         }
 
         // PUT: api/Tournament/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTournamentDetails(int id, TournamentDetails tournamentDetails)
         {
@@ -52,57 +51,101 @@ namespace Tournament.API.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(tournamentDetails).State = EntityState.Modified;
+            if (!await _uow.TournamentRepository.AnyAsync(id))
+            {
+                return NotFound();
+            }
+
+            _uow.TournamentRepository.Update(tournamentDetails);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _uow.CompleteAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch
             {
-                if (!TournamentDetailsExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return StatusCode(500);
             }
 
             return NoContent();
         }
 
         // POST: api/Tournament
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDetails tournamentDetails)
+        public async Task<ActionResult<TournamentDto>> PostTournamentDetails(TournamentDetails tournamentDetails)
         {
-            _context.TournamentDetails.Add(tournamentDetails);
-            await _context.SaveChangesAsync();
+            _uow.TournamentRepository.Add(tournamentDetails);
 
-            return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, tournamentDetails);
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
+
+            return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, _mapper.Map<TournamentDto>(tournamentDetails));
         }
 
         // DELETE: api/Tournament/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTournamentDetails(int id)
         {
-            var tournamentDetails = await _context.TournamentDetails.FindAsync(id);
-            if (tournamentDetails == null)
+            var tournament = await _uow.TournamentRepository.GetAsync(id);
+            if (tournament == null)
             {
                 return NotFound();
             }
 
-            _context.TournamentDetails.Remove(tournamentDetails);
-            await _context.SaveChangesAsync();
+            _uow.TournamentRepository.Remove(tournament);
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
 
             return NoContent();
         }
 
-        private bool TournamentDetailsExists(int id)
+        // PATCH: api/Tournament/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchTournamentDetails(int id, [FromBody] JsonPatchDocument<TournamentDetails> patchDoc)
         {
-            return _context.TournamentDetails.Any(e => e.Id == id);
+            if (patchDoc == null)
+            {
+                return BadRequest();
+            }
+
+            var tournament = await _uow.TournamentRepository.GetAsync(id);
+
+            if (tournament == null)
+            {
+                return NotFound();
+            }
+
+            patchDoc.ApplyTo(tournament, ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
+
+            return NoContent();
         }
     }
 }
+

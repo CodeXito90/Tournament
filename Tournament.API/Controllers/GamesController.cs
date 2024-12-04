@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Tournament.Data.Data;
+using Tournament.Core.Dto;
 using Tournament.Core.Entities;
+using Tournament.Core.Repositories;
 
 namespace Tournament.API.Controllers
 {
@@ -14,95 +11,141 @@ namespace Tournament.API.Controllers
     [ApiController]
     public class GamesController : ControllerBase
     {
-        private readonly Context _context;
+        private readonly IUoW _uow;
+        private readonly IMapper _mapper;
 
-        public GamesController(Context context)
+        public GamesController(IUoW uow, IMapper mapper)
         {
-            _context = context;
+            _uow = uow;
+            _mapper = mapper;
         }
 
-        // GET: api/Games
+        // GET: api/Game
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDetails>>> GetTournamentDetails()
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGame()
         {
-            return await _context.TournamentDetails.ToListAsync();
+            var games = await _uow.GameRepository.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<GameDto>>(games));
         }
 
-        // GET: api/Games/5
+        // GET: api/Game/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<TournamentDetails>> GetTournamentDetails(int id)
+        public async Task<ActionResult<GameDto>> GetGame(int id)
         {
-            var tournamentDetails = await _context.TournamentDetails.FindAsync(id);
+            var game = await _uow.GameRepository.GetAsync(id);
 
-            if (tournamentDetails == null)
+            if (game == null)
             {
                 return NotFound();
             }
 
-            return tournamentDetails;
+            return Ok(_mapper.Map<GameDto>(game));
         }
 
-        // PUT: api/Games/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // PUT: api/Game/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTournamentDetails(int id, TournamentDetails tournamentDetails)
+        public async Task<IActionResult> PutGame(int id, Game game)
         {
-            if (id != tournamentDetails.Id)
+            if (id != game.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(tournamentDetails).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TournamentDetailsExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Games
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<TournamentDetails>> PostTournamentDetails(TournamentDetails tournamentDetails)
-        {
-            _context.TournamentDetails.Add(tournamentDetails);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetTournamentDetails", new { id = tournamentDetails.Id }, tournamentDetails);
-        }
-
-        // DELETE: api/Games/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTournamentDetails(int id)
-        {
-            var tournamentDetails = await _context.TournamentDetails.FindAsync(id);
-            if (tournamentDetails == null)
+            if (!await _uow.GameRepository.AnyAsync(id))
             {
                 return NotFound();
             }
 
-            _context.TournamentDetails.Remove(tournamentDetails);
-            await _context.SaveChangesAsync();
+            _uow.GameRepository.Update(game);
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
 
             return NoContent();
         }
 
-        private bool TournamentDetailsExists(int id)
+        // POST: api/Game
+        [HttpPost]
+        public async Task<ActionResult<GameDto>> PostGame(Game game)
         {
-            return _context.TournamentDetails.Any(e => e.Id == id);
+            _uow.GameRepository.Add(game);
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
+
+            return CreatedAtAction("GetGame", new { id = game.Id }, _mapper.Map<GameDto>(game));
+        }
+
+        // DELETE: api/Game/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteGame(int id)
+        {
+            var game = await _uow.GameRepository.GetAsync(id);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            _uow.GameRepository.Remove(game);
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
+
+            return NoContent();
+        }
+
+        // PATCH: api/Game/5
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchGame(int id, [FromBody] JsonPatchDocument<Game> patchDoc)
+        {
+            if (patchDoc == null)
+            {
+                return BadRequest();
+            }
+
+            var game = await _uow.GameRepository.GetAsync(id);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            patchDoc.ApplyTo(game, ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _uow.CompleteAsync();
+            }
+            catch
+            {
+                return StatusCode(500);
+            }
+
+            return NoContent();
         }
     }
 }
+
