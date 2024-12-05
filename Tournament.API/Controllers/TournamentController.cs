@@ -14,6 +14,8 @@ namespace Tournament.API.Controllers
         private readonly IUoW _uow;
         private readonly IMapper _mapper;
 
+        // Dependency injection of IUoW and IMapper
+        // This allows for loose coupling and easier unit testing
         public TournamentController(IUoW uow, IMapper mapper)
         {
             _uow = uow;
@@ -21,18 +23,28 @@ namespace Tournament.API.Controllers
         }
 
         // GET: api/Tournament
+        // Retrieves all tournaments, optionally including related games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournamentDetails()
+        public async Task<ActionResult<IEnumerable<TournamentDto>>> GetTournamentDetails(bool includeGames = false)
         {
-            var tournaments = await _uow.TournamentRepository.GetAllAsync();
-            return Ok(_mapper.Map<IEnumerable<TournamentDto>>(tournaments));
+            var tournaments = await _uow.TournamentRepository.GetAllAsync(includeGames);
+
+            if (tournaments == null || !tournaments.Any())
+            {
+                return NotFound("No tournaments found.");
+            }
+
+            var result = _mapper.Map<IEnumerable<TournamentDto>>(tournaments);
+            return Ok(result);
         }
 
+
         // GET: api/Tournament/5
+        // Retrieves a specific tournament by id, optionally including related games
         [HttpGet("{id}")]
-        public async Task<ActionResult<TournamentDto>> GetTournamentDetails(int id)
+        public async Task<ActionResult<TournamentDto>> GetTournamentDetails(int id, [FromQuery] bool includeGames = false)
         {
-            var tournament = await _uow.TournamentRepository.GetAsync(id);
+            var tournament = await _uow.TournamentRepository.GetAsync(id, includeGames);
 
             if (tournament == null)
             {
@@ -43,6 +55,7 @@ namespace Tournament.API.Controllers
         }
 
         // PUT: api/Tournament/5
+        // Updates a specific tournament
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTournamentDetails(int id, TournamentDetails tournamentDetails)
         {
@@ -60,10 +73,13 @@ namespace Tournament.API.Controllers
 
             try
             {
+                // The Unit of Work pattern is used here to save changes
+                // This ensures that all operations within the transaction are successful, or none are
                 await _uow.CompleteAsync();
             }
             catch
             {
+                // If an error occurs during save, return a 500 Internal Server Error
                 return StatusCode(500);
             }
 
@@ -71,6 +87,7 @@ namespace Tournament.API.Controllers
         }
 
         // POST: api/Tournament
+        // Creates a new tournament
         [HttpPost]
         public async Task<ActionResult<TournamentDto>> PostTournamentDetails(TournamentDetails tournamentDetails)
         {
@@ -89,10 +106,11 @@ namespace Tournament.API.Controllers
         }
 
         // DELETE: api/Tournament/5
+        // Deletes a specific tournament
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTournamentDetails(int id)
         {
-            var tournament = await _uow.TournamentRepository.GetAsync(id);
+            var tournament = await _uow.TournamentRepository.GetAsync(id, true);
             if (tournament == null)
             {
                 return NotFound();
@@ -113,6 +131,7 @@ namespace Tournament.API.Controllers
         }
 
         // PATCH: api/Tournament/5
+        // Partially updates a tournament
         [HttpPatch("{id}")]
         public async Task<IActionResult> PatchTournamentDetails(int id, [FromBody] JsonPatchDocument<TournamentDetails> patchDoc)
         {
@@ -121,7 +140,7 @@ namespace Tournament.API.Controllers
                 return BadRequest();
             }
 
-            var tournament = await _uow.TournamentRepository.GetAsync(id);
+            var tournament = await _uow.TournamentRepository.GetAsync(id, true);
 
             if (tournament == null)
             {

@@ -20,15 +20,23 @@ namespace Tournament.API.Controllers
             _mapper = mapper;
         }
 
-        // GET: api/Game
+        // GET: api/Games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GameDto>>> GetGame()
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGames([FromQuery] string title = null)
         {
-            var games = await _uow.GameRepository.GetAllAsync();
+            IEnumerable<Game> games;
+            if (string.IsNullOrEmpty(title))
+            {
+                games = await _uow.GameRepository.GetAllAsync();
+            }
+            else
+            {
+                games = (IEnumerable<Game>)await _uow.GameRepository.GetByTitleAsync(title);
+            }
             return Ok(_mapper.Map<IEnumerable<GameDto>>(games));
         }
 
-        // GET: api/Game/5
+        // GET: api/Games/5
         [HttpGet("{id}")]
         public async Task<ActionResult<GameDto>> GetGame(int id)
         {
@@ -42,7 +50,7 @@ namespace Tournament.API.Controllers
             return Ok(_mapper.Map<GameDto>(game));
         }
 
-        // PUT: api/Game/5
+        // PUT: api/Games/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutGame(int id, Game game)
         {
@@ -64,13 +72,13 @@ namespace Tournament.API.Controllers
             }
             catch
             {
-                return StatusCode(500);
+                return StatusCode(500, "An error occurred while updating the game.");
             }
 
             return NoContent();
         }
 
-        // POST: api/Game
+        // POST: api/Games
         [HttpPost]
         public async Task<ActionResult<GameDto>> PostGame(Game game)
         {
@@ -82,13 +90,13 @@ namespace Tournament.API.Controllers
             }
             catch
             {
-                return StatusCode(500);
+                return StatusCode(500, "An error occurred while creating the game.");
             }
 
-            return CreatedAtAction("GetGame", new { id = game.Id }, _mapper.Map<GameDto>(game));
+            return CreatedAtAction(nameof(GetGame), new { id = game.Id }, _mapper.Map<GameDto>(game));
         }
 
-        // DELETE: api/Game/5
+        // DELETE: api/Games/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGame(int id)
         {
@@ -106,13 +114,13 @@ namespace Tournament.API.Controllers
             }
             catch
             {
-                return StatusCode(500);
+                return StatusCode(500, "An error occurred while deleting the game.");
             }
 
             return NoContent();
         }
 
-        // PATCH: api/Game/5
+        // PATCH: api/Games/5
         [HttpPatch("{id}")]
         public async Task<IActionResult> PatchGame(int id, [FromBody] JsonPatchDocument<Game> patchDoc)
         {
@@ -141,7 +149,7 @@ namespace Tournament.API.Controllers
             }
             catch
             {
-                return StatusCode(500);
+                return StatusCode(500, "An error occurred while updating the game.");
             }
 
             return NoContent();

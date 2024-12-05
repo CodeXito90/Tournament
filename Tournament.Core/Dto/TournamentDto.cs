@@ -17,6 +17,6 @@ namespace Tournament.Core.Dto
         public DateTime StartDate { get; set; }
         public DateTime EndDate => StartDate.AddMonths(3);
 
-        public List<GameDto> Games { get; set; }
+        public List<GameDto> Games { get; set; } = new List<GameDto>();
     }
 }

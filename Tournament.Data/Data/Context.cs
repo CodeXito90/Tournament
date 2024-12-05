@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Tournament.Core.Entities;
 
 namespace Tournament.Data.Data
 {
     public class Context : DbContext
     {
-        public Context (DbContextOptions<Context> options)
+        public Context(DbContextOptions<Context> options)
             : base(options)
         {
         }
@@ -19,16 +15,23 @@ namespace Tournament.Data.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configure TournamentDetails entity
             modelBuilder.Entity<TournamentDetails>()
                 .HasMany(t => t.Games)
-                .WithOne()
+                .WithOne(g => g.TournamentDetails)
                 .HasForeignKey(g => g.TournamentId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // Cascade delete ensures Games are deleted if TournamentDetails is removed
 
             modelBuilder.Entity<TournamentDetails>()
                 .Property(t => t.Title)
                 .IsRequired()
                 .HasMaxLength(100);
+
+            //// Optional: Configure Game entity if needed
+            //modelBuilder.Entity<Game>()
+            //    .Property(g => g.Title)
+            //    .IsRequired()
+            //    .HasMaxLength(100);
         }
     }
 }

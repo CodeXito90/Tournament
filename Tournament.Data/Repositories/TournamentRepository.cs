@@ -14,15 +14,22 @@ namespace Tournament.Data.Repositories
         {
             _context = context;
         }
+        
 
-        public async Task<IEnumerable<TournamentDetails>> GetAllAsync()
+        public async Task<IEnumerable<TournamentDetails>> GetAllAsync(bool includeGames)
         {
-            return await _context.TournamentDetails
-                .Include(t => t.Games)
-                .ToListAsync();
+            IQueryable<TournamentDetails> query = _context.TournamentDetails;
+
+            if (includeGames)
+            {
+                query = query.Include(t => t.Games);
+            }
+
+            return await query.ToListAsync();
         }
 
-        public async Task<TournamentDetails?> GetAsync(int id)
+
+        public async Task<TournamentDetails?> GetAsync(int id, bool includeGames)
         {
             return await _context.TournamentDetails
                 .Include(t => t.Games)
@@ -48,5 +55,6 @@ namespace Tournament.Data.Repositories
         {
             _context.TournamentDetails.Remove(tournament);
         }
+
     }
 }

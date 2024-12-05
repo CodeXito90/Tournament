@@ -45,5 +45,15 @@ namespace Tournament.Data.Repositories
         {
             _context.Games.Remove(game);
         }
+
+        //public Task GetByTitleAsync(string title)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        Task<Game?> IGameRepository.GetByTitleAsync(string title)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

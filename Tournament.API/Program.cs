@@ -22,9 +22,9 @@ namespace Tournament.API
                 .AddXmlDataContractSerializerFormatters();
 
             builder.Services.AddAutoMapper(typeof(TournamentMappings));
+            builder.Services.AddScoped<IUoW, UoW>();
             builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
             builder.Services.AddScoped<IGameRepository, GameRepository>();
-            builder.Services.AddScoped<IUoW, UoW>();
 
             builder.Services.AddCors(builder =>
             {
