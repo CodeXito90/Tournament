@@ -9,7 +9,8 @@ namespace Tournament.Core.Dto
 {
     public class GameDto
     {
-        //public int Id { get; set; }
+
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Title is required")]
         [StringLength(100, ErrorMessage = "Title cannot be longer than 100 characters")]
@@ -19,5 +20,24 @@ namespace Tournament.Core.Dto
 
         // Optional: Reference to the tournament
         public int TournamentId { get; set; }
+    }
+    public class GameForCreationDto
+    {
+        [Required(ErrorMessage = "Title is required")]
+        [StringLength(100, ErrorMessage = "Title cannot be longer than 100 characters")]
+        public string Title { get; set; }
+
+        public DateTime StartTime { get; set; }
+
+        [Required(ErrorMessage = "Tournament ID is required")]
+        public int TournamentId { get; set; }
+    }
+
+    public class GameForUpdateDto
+    {
+        [StringLength(100, ErrorMessage = "Title cannot be longer than 100 characters")]
+        public string? Title { get; set; }
+
+        public DateTime? StartTime { get; set; }
     }
 }

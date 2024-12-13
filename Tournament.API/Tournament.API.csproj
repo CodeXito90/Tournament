@@ -18,8 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Tournament.Contract\Services.Contract.csproj" />
     <ProjectReference Include="..\Tournament.Core\Tournament.Core.csproj" />
     <ProjectReference Include="..\Tournament.Data\Tournament.Data.csproj" />
+    <ProjectReference Include="..\Tournaments.Presentation\Tournaments.Presentation.csproj" />
+    <ProjectReference Include="..\Tournaments.Services\Tournaments.Services.csproj" />
   </ItemGroup>
 
 </Project>

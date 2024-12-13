@@ -16,5 +16,6 @@ namespace Tournament.Core.Repositories
         void Update(Game game);
         void Remove(Game game);
         Task<Game?> GetByTitleAsync(string title);
+        Task<int> GetGameCountForTournamentAsync(int tournamentId);
     }
 }
