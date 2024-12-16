@@ -23,6 +23,9 @@ namespace Tournaments.Presentation.Controllers
         {
             var games = await _serviceManager.GameService.GetAllGamesAsync(tournamentId, parameters);
 
+            if (!games.Any())
+                return NotFound("No games found for the specified tournament.");
+
             Response.Headers["X-Pagination"] = JsonSerializer.Serialize(new
             {
                 games.CurrentPage,
@@ -34,11 +37,12 @@ namespace Tournaments.Presentation.Controllers
             return Ok(games);
         }
 
+
         // GET: api/tournaments/{tournamentId}/games/{id}
         [HttpGet("{id}", Name = "GetGame")]
-        public async Task<IActionResult> GetGame(int tournamentId, int gameId)
+        public async Task<IActionResult> GetGame(int tournamentId, int id)
         {
-            var game = await _serviceManager.GameService.GetGameAsync(tournamentId);
+            var game = await _serviceManager.GameService.GetGameAsync(tournamentId, id);
             if (game == null)
                 return NotFound();
 
@@ -59,34 +63,29 @@ namespace Tournaments.Presentation.Controllers
 
         // PUT: api/tournaments/{tournamentId}/games/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateGame(int id, [FromBody] GameForUpdateDto game)
+        public async Task<IActionResult> UpdateGame(int tournamentId, int id, [FromBody] GameForUpdateDto game)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Call the service method and store the result
-            var result = await _serviceManager.GameService.UpdateGameAsync(id, game);
+            var result = await _serviceManager.GameService.UpdateGameAsync(tournamentId, id, game);
 
-            // If the result is false, return a NotFound response
             if (!result)
                 return NotFound();
 
-            // Otherwise, return NoContent
             return NoContent();
         }
-
 
         // DELETE: api/tournaments/{tournamentId}/games/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGame(int tournamentId, int gameId)
         {
-            var game = await _serviceManager.GameService.GetGameAsync(tournamentId);
+            var game = await _serviceManager.GameService.GetGameAsync(tournamentId, gameId);
             if (game == null)
                 return NotFound();
 
             await _serviceManager.GameService.DeleteGameAsync(tournamentId, gameId);
             return NoContent();
         }
-
     }
 }

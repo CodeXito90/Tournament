@@ -14,16 +14,22 @@ namespace Tournament.Data.Repositories
         {
             _context = context;
         }
+        public async Task<IEnumerable<Game>> GetAllByTournamentAsync(int tournamentId)
+        {
+            return await _context.Games
+                .Where(g => g.TournamentId == tournamentId)
+                .ToListAsync();
+        }
 
         public async Task<IEnumerable<Game>> GetAllAsync()
         {
             return await _context.Games.ToListAsync();
         }
 
-        public async Task<Game?> GetAsync(int id)
+        public async Task<Game?> GetAsync(int id, int tournamentId)
         {
             return await _context.Games
-                .FirstOrDefaultAsync(g => g.Id == id);
+                .FirstOrDefaultAsync(g => g.Id == id && g.TournamentId == tournamentId);
         }
 
         public async Task<bool> AnyAsync(int id)

@@ -22,15 +22,21 @@ namespace Tournament.Services
 
         public async Task<PagedList<GameDto>> GetAllGamesAsync(int tournamentId, GameParameters parameters)
         {
-            var games = await _unitOfWork.GameRepository.GetAllAsync();
+            // Fetch games filtered by tournamentId
+            var games = await _unitOfWork.GameRepository.GetAllByTournamentAsync(tournamentId);
+
+            // Map games to DTOs
             var gameDtos = _mapper.Map<IEnumerable<GameDto>>(games);
 
-            return PagedList<GameDto>.ToPagedList(gameDtos, parameters.PageNumber, parameters.PageSize);
+            // Paginate the game DTOs
+            var paginatedGames = PagedList<GameDto>.ToPagedList(gameDtos.AsQueryable(), parameters.PageNumber, parameters.PageSize);
+
+            return paginatedGames;
         }
 
-        public async Task<GameDto> GetGameAsync(int gameId, bool trackChanges = false)
+        public async Task<GameDto> GetGameAsync(int gameId, int tournamentId, bool trackChanges = false)
         {
-            var game = await _unitOfWork.GameRepository.GetAsync(gameId);
+            var game = await _unitOfWork.GameRepository.GetAsync(gameId, tournamentId);
             if (game == null)
                 throw new GameNotFoundException(gameId);
 
@@ -41,13 +47,11 @@ namespace Tournament.Services
         {
             // Check if tournament exists
             var tournament = await _unitOfWork.TournamentRepository.GetAsync(tournamentId, includeGames: true);
-            if (tournament == null)
-                throw new TournamentNotFoundException(tournamentId);
+            if (tournament == null) throw new TournamentNotFoundException(tournamentId);
 
             // Check game limit
             var gameCount = await _unitOfWork.GameRepository.GetGameCountForTournamentAsync(tournamentId);
-            if (gameCount >= 10)
-                throw new MaxGamesExceededException(tournamentId);
+            if (gameCount >= 10) throw new MaxGamesExceededException(tournamentId);
 
             var game = _mapper.Map<Game>(gameDto);
             game.TournamentId = tournamentId;
@@ -58,11 +62,11 @@ namespace Tournament.Services
             return _mapper.Map<GameDto>(game);
         }
 
-        public async Task<bool> UpdateGameAsync(int id, GameForUpdateDto gameDto)
+        public async Task<bool> UpdateGameAsync(int tournamentId, int id, GameForUpdateDto gameDto)
         {
-            var game = await _unitOfWork.GameRepository.GetAsync(id);
-            if (game == null)
-                return false; // Game does not exist
+            var game = await _unitOfWork.GameRepository.GetAsync(id, tournamentId);
+            if (game == null || game.TournamentId != tournamentId) // Ensure the game belongs to the tournament
+                return false; // Game does not exist or does not belong to the specified tournament
 
             // Update the game entity with the DTO properties
             _mapper.Map(gameDto, game);
@@ -73,14 +77,17 @@ namespace Tournament.Services
         }
 
 
+
         public async Task DeleteGameAsync(int tournamentId, int gameId)
         {
-            var game = await _unitOfWork.GameRepository.GetAsync(gameId);
+            var game = await _unitOfWork.GameRepository.GetAsync(gameId, tournamentId);
             if (game == null || game.TournamentId != tournamentId)
                 throw new GameNotFoundException(gameId);
 
             _unitOfWork.GameRepository.Remove(game);
             await _unitOfWork.CompleteAsync();
         }
+
+    
     }
 }
